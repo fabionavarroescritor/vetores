@@ -1,0 +1,135 @@
+// dynamic list with our points, PVector holds position
+ArrayList<PVector> points = new ArrayList<PVector>();
+
+// colors used for points
+color[] pal = {
+  color(0, 91, 197), 
+  color(0, 180, 252), 
+  color(23, 249, 255), 
+  color(223, 147, 0), 
+  color(248, 190, 0)
+};
+
+// global configuration
+float vector_scale = 0.01; // vector scaling factor, we want small steps
+float time = 0; // time passes by
+
+void setup() {
+  size(900, 700);
+  strokeWeight(0.66);
+  background(0, 5, 25);
+  noFill();
+  smooth(8);
+
+  // noiseSeed(1111); // sometimes we select one noise field
+
+  // create points from [-3,3] range
+  for (float x=-3; x<=3; x+=0.07) {
+    for (float y=-3; y<=3; y+=0.07) {
+      // create point slightly distorted
+      PVector v = new PVector(x+randomGaussian()*0.003, y+randomGaussian()*0.003);
+      points.add(v);
+    }
+  }
+}
+
+void draw() {
+  int point_idx = 0; // point index
+  for (PVector p : points) {
+    // map floating point coordinates to screen coordinates
+    float xx = map(p.x, -6.5, 6.5, 0, width);
+    float yy = map(p.y, -6.5, 6.5, 0, height);
+
+    // select color from palette (index based on noise)
+    int cn = (int)(100*pal.length*noise(point_idx))%pal.length;
+    stroke(pal[cn], 15);
+    point(xx, yy); //draw
+
+    // placeholder for vector field calculations
+    float n1a = 15*map(noise(p.x/10, p.y/10), 0, 1, -1, 1);
+    float n1b = 15*map(noise(p.y/10, p.x/10), 0, 1, -1, 1);
+
+    PVector v1 = superformula(n1a);
+    PVector v2 = circle(n1b);
+
+    PVector diff = PVector.sub(v2, v1);
+    diff.mult(0.3);
+
+    PVector v = new PVector(diff.x, diff.y);
+
+    //float n1 = 10*noise(1+p.x/20, 1+p.y/20); // shift input to avoid symetry
+    //float n2 = 5*noise(n1, n1);
+    //float n3 = 755*map(noise(n2, n2), 150, 5, -1, 1); // 25,325
+
+    //PVector v = circle(n3);
+
+    // v is vector from the field
+    //PVector v = new PVector(0, 0);
+
+    p.x += vector_scale * v.x;
+    p.y += vector_scale * v.y;
+
+    // go to the next point
+    point_idx++;
+  }
+  time += 0.001;
+}
+PVector circle(float n) { // polar to cartesian coordinates
+  return new PVector(cos(n), sin(n));
+}
+
+PVector astroid(float n) {
+  float sinn = sin(n);
+  float cosn = cos(n);
+
+  float xt = sq(sinn)*sinn;
+  float yt = sq(cosn)*cosn;
+
+  return new PVector(xt, yt);
+}
+
+PVector cissoid(float n) {
+  float sinn2 = 2*sq(sin(n));
+
+  float xt = sinn2;
+  float yt = sinn2*tan(n);
+
+  return new PVector(xt, yt);
+}
+
+PVector kampyle(float n) {
+  float sec = 1/sin(n);
+
+  float xt = sec;
+  float yt = tan(n)*sec;
+
+  return new PVector(xt, yt);
+}
+
+PVector rect_hyperbola(float n) {
+  float sec = 1/sin(n);
+
+  float xt = 1/sin(n);
+  float yt = tan(n);
+
+  return new PVector(xt, yt);
+}
+
+final static float superformula_a = 1;
+final static float superformula_b = 1;
+final static float superformula_m = 6;
+final static float superformula_n1 = 1;
+final static float superformula_n2 = 7;
+final static float superformula_n3 = 8;
+PVector superformula(float n) {
+
+
+  float f1 = pow(abs(cos(superformula_m*n/4)/superformula_a), superformula_n2);
+  float f2 = pow(abs(sin(superformula_m*n/4)/superformula_b), superformula_n3);
+  float fr = pow(f1+f2, -1/superformula_n1);
+
+  float xt = cos(n)*fr;
+  float yt = sin(n)*fr;
+
+  return new PVector(xt, yt);
+}
